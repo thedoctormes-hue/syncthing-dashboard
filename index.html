@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <base href="/">
+    <title>OS Lab Dashboard v2 ZAVLAB-V2-LIVE</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'JetBrains Mono', monospace; background: #0a0a0f; color: #fff; }
+      .glass-panel { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+      #error-display { padding: 20px; color: #fff; background: #000; white-space: pre-wrap; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // FORCE FRESH LOAD FOR SAFARI
+      (function() {
+        var v = localStorage.getItem('dashboard_version') || '0';
+        var needReload = (v !== '20260501');
+        if (needReload) {
+          localStorage.setItem('dashboard_version', '20260501');
+          if (performance.navigation.type !== 1) {
+            window.location.reload(true);
+          }
+        }
+      })();
+
+      // Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/dashboard-react/sw.js').then(() => {
+          navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({type: 'SKIP_WAITING'});
+        }).catch(() => {});
+      }
+
+      window.onerror = function(msg, src, line, col, err) {
+        const el = document.getElementById('root');
+        if (el) {
+          el.innerHTML = '<div id="error-display">ERROR: ' + msg + '\nFile: ' + src + '\nLine: ' + line + '\nCol: ' + col + '</div>';
+        }
+      };
+      window.onunhandledrejection = function(e) {
+        const el = document.getElementById('root');
+        if (el) {
+          el.innerHTML = '<div id="error-display">PROMISE ERROR: ' + e.reason + '</div>';
+        }
+      };
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
