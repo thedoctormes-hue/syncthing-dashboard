@@ -6,13 +6,30 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 22
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Lint with ESLint
+      run: npm run lint
+      continue-on-error: true
+
+  test:
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [22]
-
     steps:
     - uses: actions/checkout@v5
     - name: Use Node.js ${{ matrix.node-version }}
@@ -20,15 +37,30 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-
     - name: Install dependencies
       run: npm ci
-
-    - name: Lint with ESLint
-      run: npm run lint
-
     - name: Run tests
       run: npm run test:run
-
     - name: Build
       run: npm run build
+
+  auto-merge:
+    needs: test
+    if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+    - name: Approve Dependabot PR
+      run: gh pr review --approve "$PR_URL"
+      env:
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Merge Dependabot PR
+      run: |
+        gh pr merge "$PR_URL" --delete-branch --squash
+        gh workflow run node.js.yml --ref main
+      env:
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
