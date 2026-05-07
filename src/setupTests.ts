@@ -1,11 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 
 // Mock fetch for tests
-const mockFetch = () =>
+globalThis.fetch = (() =>
   Promise.resolve({
     json: () => Promise.resolve({ status: 'ok', data: [] }),
     ok: true,
     status: 200,
-  });
-
-globalThis.fetch = mockFetch as typeof fetch;
+  })) as unknown as typeof fetch;
